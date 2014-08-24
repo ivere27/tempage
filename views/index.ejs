@@ -1,0 +1,475 @@
+﻿<html lang="utf-8">
+<head>
+  <title><%= pageId %></title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel="shortcut icon" href="/images/tempage.png">
+  <link href="/stylesheets/tempage.css" rel="stylesheet">
+  <link href="/dist/css/bootstrap_well.css" rel="stylesheet">
+  <link href="/dist/css/bootstrap-responsive.min.css" rel="stylesheet">
+  <link href="/stylesheets/colorbox.css" rel="stylesheet">
+  <link href="/dist/css/font-awesome.css" rel="stylesheet">
+
+  <script src="<%= protocol %>://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="<%= protocol %>://ajax.cdnjs.com/ajax/libs/json2/20110223/json2.js"></script>  
+  <script src="/javascripts/jquery.ui.widget.js"></script>
+  <script src="/javascripts/jquery.iframe-transport.js"></script>
+  <script src="/javascripts/jquery.fileupload.js"></script>
+  <script src="/javascripts/jquery.colorbox-min.js"></script>
+  <script src="/javascripts/bootstrapSwitch.js"></script>
+  <script src="/bootstrap/js/bootstrap.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  
+</head>
+<body>
+  
+  <div class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse"
+          data-target=".navbar-collapse">
+          <span class="icon-bar"></span> <span class="icon-bar"></span> <span
+            class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#" onclick="return false;"><i class="icon-home" style="margin-left:20px"></i> Tempage - a null box.</a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li class=""><a id="newPage" href="#" onclick="return false"><i class="icon-refresh"></i> New
+              Page</a></li>
+          <li> <a id="clearPage" href="#" onclick="return false">
+              <i class="icon-trash"></i> Clear Page</a></li>
+          <li><a> <i class="icon-exclamation-sign"></i> Expires at <span id="expiresTime"></span></a></li>
+          <li><a>View Share</a></li>
+          <li style="margin : 10px"><div id="viewShareToggle" class="make-switch"><input type="checkbox" checked> </div></li>
+          
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" style="margin-top: 30px">
+    <div class="row row-offcanvas" style="margin: 10px 10px 10px 10px">
+      <div class="col">
+        <div class="row-fluid">
+          <div class="col-lg-8">
+            <h1 title="TEXT that you want to share with."><i class="icon-pencil"></i> Text</h1>
+            <textarea id="pageText" class="form-control" style="height:48.5%;" ng-model="addEditTextModel"
+              placeholder="Type text to share.."></textarea>
+
+          </div>
+          <div class="col-lg-4">
+            <h1 title="CHAT that you want to say.">
+              Chat (  <span id="userCount"></span>  <i class="icon-user"></i> )
+            </h1>
+
+            <div class="chatText" >
+              <div id="chatScroll">
+                <div id="messages" ></div>
+              </div>
+            </div>
+            <div>
+              <input id="chatInput" type="text" placeholder="Enter message..." class="form-control" style="width: 100%">
+            </div>
+          </div>
+          
+        </div>
+        <div class="row-fluid">
+          <div class="col-lg-12" style="margin-top: 5px; margin-bottom: 5px">        
+      <div id="progress">
+        <div class="bar" style="width: 100%;"></div>
+      </div>    
+      </div>
+    </div>
+        
+        <div class="row-fluid">
+          <div class="col-lg-4" style="margin-top: 5px; margin-bottom: 5px">
+            <div >
+              <input id="fileupload" type="file" name="file" data-url="<%= protocol %>://<%= host %>/<%= pageId %>/file/" multiple>
+            </div>
+            <div id="UploadBox">
+              <span id="UploadArea">
+              <div id="file_drop">
+                <div class = "col-lg-13 hidden-phone" title="" id="holder" style="background-color:#f9f9f9; text-align: center">
+                  <p style="margin:30px; color:#317EAC"> Drag and drop files </p>
+                </div>
+                <p id="status" class="success"></p>
+              </div>
+              </span>
+            </div>
+                  
+          </div>
+          <div class="col-lg-8" style="margin-top: 5px; margin-bottom: 5px">
+            <div class="fileBox">
+              <div id="fileList" style="margin-left:10px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  <!-- /container -->
+
+
+  <script type="text/javascript">
+$(function() {  
+    var host = "<%= protocol %>" + '://' + "<%= host %>";
+    var pageId = "<%= pageId %>";
+    var userId = null;
+    var socket = io.connect(host, {'secure': <% if(protocol=='https') {%>true<%} else { %>false<% } %>,
+                     'connect timeout': 500, 
+                     'reconnect': true, 
+                     'reconnection delay': 500,
+                     'max reconnection attempts': 10});
+
+    var userCount = 1;
+    var expiresTime = null;
+    var viewShareEnable = true;    
+    var fileList = [];
+
+    //new page
+    $("#newPage").click(function() {
+      document.location.href = host;
+    });
+
+    //clear page
+    $("#clearPage").click(function() {
+      socket.emit('clearPage', JSON.stringify({
+        pageId : pageId,
+        userId : userId
+      }));
+    });
+
+  //채팅 메세지.
+    var messageElement = document.getElementById('messages');
+    var lastMessageElement = null;
+
+    var addMessage = function(chat) {
+      var newMessageElement = document.createElement('div');
+      var newMessageText = document.createTextNode(chat.user.substring(0, 5) + ' : ' + chat.message);
+    
+      if ( chat.user == userId)
+        newMessageElement.className = "meChat"
+      else if (chat.user == "")
+        newMessageElement.className = "systemChat"
+      else
+        newMessageElement.className = "otherChat"
+        
+      newMessageElement.appendChild(newMessageText);        
+      if (lastMessageElement == null)        
+    messageElement.insertBefore(newMessageElement, lastMessageElement);
+    else
+    lastMessageElement.parentNode.insertBefore(newMessageElement, lastMessageElement.nextSibling);
+    
+    $("#chatScroll").scrollTop($("#chatScroll")[0].scrollHeight);
+      lastMessageElement = newMessageElement;
+    };
+
+    function checkMessage(message) {
+      //console.log(message);
+      if ((typeof message == "object") && (message !== null)) {
+        var chat = message;
+      } else {
+        var chat = JSON.parse(message);
+      }
+
+      //cmd인지 매치
+      if (chat.user.match(/^\/(\w*)(.*)/)) {
+        if (chat.user == '/userConnected') { //신규 유저 로그인.
+          addMessage({
+            user : '',
+            message : chat.message + ' in'
+          });
+          socket.emit('userInfo', pageId);
+        } else if (chat.user == '/userDisconnected') { //유저 접속 해제
+          addMessage({
+            user : '',
+            message : chat.message + ' out'
+          });
+          socket.emit('userInfo', pageId);
+        }
+
+      } else { //메세지 추가.
+        addMessage(chat);
+      }
+
+    }
+
+    //for debug.
+    socket.on('log', function(content) {
+      console.log(content);
+    });
+  
+  //userInfo.
+    socket.on('userInfo', function(content) {
+      var obj = JSON.parse(content);
+      userCount = obj.userCount;
+      $("#userCount").html(userCount);
+    });
+    
+    socket.on('chatMessage', function(content) {
+      checkMessage(content);
+    });
+
+    socket.on('textMessage', function(content) {
+      $("#pageText").val(content);
+
+    });
+
+    socket.on('pageInfo', function(content) {
+      var obj = JSON.parse(content);
+      //console.log(content);
+      userId = obj.userId;
+      userCount = obj.userCount;
+
+      $("#pageText").val(obj.text);
+      $("#userCount").html(userCount);
+
+    //채팅 초기화.
+      $('#messages').empty(); 
+      lastMessageElement = null;
+
+      //time
+      expiresTime = new Date(obj.expiresTime);
+      $("#expiresTime").html(  expiresTime.toLocaleString() );
+
+      //파일 존재시, 파일 리스트추가.
+      $('#fileList').empty(); //초기화
+    fileList.length = 0;      
+      lastFileElement = null;
+
+    for(var k in obj.fileList.files)
+    addFile( obj.fileList.files[k] );
+
+    });
+
+    socket.on('pageJoined', function(content) { //join시 불려짐.
+      socket.emit('pageInfo', pageId);
+    });
+
+    socket.on('pageDeleted', function(content) { //page삭제시. 다시 접속.
+      //re join
+      userId = null;
+      userCount = 1;
+      socket.emit('join', pageId);
+
+      //document.location.reload(true);
+      //console.log('pageDeleted');
+    });
+        
+  socket.on('viewShareOpen', function(content) {
+    if (viewShareEnable) {
+    $.colorbox({href : content.fileName, iframe:true, width:"80%", height:"80%",    
+        onOpen:function(){   },
+        onLoad:function(){   },
+        onComplete:function(){  
+          $(".cboxIframe").on("load", function() { 
+          $('#cboxTitle').text( $(".cboxIframe")[0].contentDocument.location.href  );
+          });                  
+        },
+        onCleanup:function(){  },
+        onClosed:function(){  }
+        });        
+    }
+  });  
+  
+  socket.on('viewShareClosed', function(content) {
+    if (viewShareEnable)
+    $.colorbox.close();
+  });  
+  
+
+    //한글은 keypress 에 안잡힘.
+    var sendPage = function() {
+      socket.emit('textMessage', $("#pageText").val());
+    };
+
+    var timer1;
+    $('#pageText').keyup(function(e) {
+      clearTimeout(timer1);
+      timer1 = setTimeout(sendPage, 200); //보통 다음글자는 0.2초 안에
+    });
+
+
+  $( "#chatInput" ).keydown(function( e ) {
+      if (e.which == 13) {
+        var chatMessage = $.trim( $("#chatInput").val() );
+        
+        if (chatMessage.match(/^\/(\w*)(.*)/)) {
+          var chatMessage = chatMessage.split(' ');
+          chatMessage[0] = chatMessage[0].replace('/', '');
+          socket.emit(chatMessage[0], chatMessage[1]);
+        } else {
+          socket.emit('chatMessage', chatMessage);
+        }
+
+        $('#chatInput').val('');
+        return false;
+      } else {
+        return true;
+      }
+
+  });
+
+    $('#viewShareToggle').on('switch-change', function (e, data) {
+      var $el = $(data.el), value = data.value;
+      viewShareEnable = value; //console.log(e, $el, value);
+    });
+
+  $('#fileupload').fileupload({
+    dataType: 'json',
+    done: function (e, data) {
+      //console.log(data);
+      
+      //$.each(data.result.files, function (index, file) {
+      //  $('<p/>').text(file.name).appendTo(document.body);
+      //});
+    },
+    progressall: function (e, data) {
+      var progress = parseInt(data.loaded / data.total * 100, 10);
+      $('#progress .bar').css(
+        'width',
+        progress + '%'
+      );
+    }    
+    
+  });
+
+  var refleshFileList = function() {
+    $.get('<%= protocol %>://<%= host %>/<%= pageId %>/file/' , function(data) {
+      //파일 존재시, 파일 리스트추가.
+      $('#fileList').empty(); //init
+      fileList.length = 0;
+      lastFileElement = null;
+      try {
+        data = JSON.parse(data);
+        for(var k in obj.fileList.files)
+          addFile( obj.fileList.files[k] );
+      } catch(e) {
+        //console.log(e);
+      }
+    });
+  };
+  
+    socket.on('fileSaved', function(content) {
+      addFile(content);
+    });
+    socket.on('fileDeletedAll', function(content) {
+      refleshFileList();
+    });    
+    socket.on('fileDeleted', function(content) {
+      refleshFileList();
+    });
+
+
+    //파일 리스트업로드시 추가.
+    var fileElement = document.getElementById('fileList');
+    var lastFileElement = null;
+    function addFile(content) {
+      if ((typeof content == "object") && (content !== null)) {
+        var file = content;
+      } else {
+        var file = JSON.parse(content);
+      }
+
+    if ( $.inArray( file.name, fileList) >= 0)
+      return;
+
+    fileList.push( file.name );
+    
+      var newFileElement = document.createElement('div');
+      var newLinkElement = document.createElement('a');
+      var newFileText = document.createTextNode(file.name);
+      newLinkElement.href = host + '/' + pageId + '/file/'+ file.name;
+      newLinkElement.className = 'brand';
+
+      newLinkElement.appendChild(newFileText);
+
+      var newViewLinkElement = document.createElement('a');
+      var newViewFileText = document.createTextNode(' (view) ');
+      newViewLinkElement.href = host + '/' + pageId + '/view/' + file.name;
+      newViewLinkElement.className = "iframe";
+
+      newViewLinkElement.appendChild(newViewFileText);
+
+      newFileElement.appendChild(newLinkElement);
+      newFileElement.appendChild(newViewLinkElement);
+
+      fileElement.insertBefore(newFileElement, lastFileElement);
+      lastFileElement = newFileElement;
+      
+    $(".iframe").colorbox({iframe:true, width:"80%", height:"80%",
+        onOpen:function(){},
+        onLoad:function(){},
+        onComplete:function(){
+        $(".cboxIframe").on("load", function() { 
+          $('#cboxTitle').text( $(".cboxIframe")[0].contentDocument.location.href  );
+          if (viewShareEnable) {
+            var obj = {pageId:pageId, userId : userId, fileName : $(".cboxIframe")[0].contentDocument.location.href };
+            socket.emit('viewShareOpen', obj );
+          }
+        });
+
+        },
+        onCleanup:function() {},
+        onClosed:function() {
+          if (viewShareEnable) {
+            var obj = {pageId:pageId, userId : userId, fileName : $(this).attr("href") };
+            socket.emit('viewShareClosed', obj ); 
+           }
+         }
+      });
+    }
+
+    //set expires time
+    var timeLeft = function() {
+      if (expiresTime == null) return false;
+      
+      var remainTime = expiresTime - Date.now();
+
+      if (remainTime < 0) {
+        $("#expiresTime").html("TIME OUT!");
+        return false;
+      }
+
+      var hh = Math.floor(remainTime / 1000 / 60 / 60);
+      remainTime -= hh * 1000 * 60 * 60;
+      var mm = Math.floor(remainTime / 1000 / 60);
+      remainTime -= mm * 1000 * 60;
+      var ss = Math.floor(remainTime / 1000);
+      remainTime -= ss * 1000;
+
+      var remainString = " ( ";
+      if (hh > 0)
+        remainString += ("00" + hh).slice(-2) + ":";
+      if (mm >= 0)
+        remainString += ("00" + mm).slice(-2) + ":";
+      if (ss >= 0)
+        remainString += ("00" + ss).slice(-2) + " lefts..)";
+
+      $("#expiresTime").html( expiresTime.toLocaleString() + remainString );
+
+    };
+    setInterval( timeLeft, 1000);
+
+    //join the page if everything is done.
+    if (userId == null) {
+      socket.emit('join', pageId);
+    }
+});
+  </script>
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-52739655-1', 'tempage.io');
+    ga('send', 'pageview');
+  </script>
+</body>
+</html>

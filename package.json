@@ -1,0 +1,19 @@
+﻿{
+  "name": "tempage",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "*",
+    "jade": "*",
+    "redis": "*",
+    "async": "*",
+    "ejs" : "*",
+    "gridfs-stream" : "*",
+    "mongodb" : "*",
+    "redis-lock" : "*",
+    "socket.io" : "*"
+  }
+}
