@@ -14,6 +14,10 @@
     "gridfs-stream" : "*",
     "mongodb" : "*",
     "redis-lock" : "*",
-    "socket.io" : "*"
+    "socket.io" : "1.0.6",
+    "socket.io-redis" : "*",
+    "body-parser" : "*",
+    "serve-favicon" : "*",
+    "multer" : "*"
   }
 }

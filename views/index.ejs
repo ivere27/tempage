@@ -116,351 +116,355 @@
 
 
   <script type="text/javascript">
-$(function() {  
+//$(function() {  
     var host = "<%= protocol %>" + '://' + "<%= host %>";
     var pageId = "<%= pageId %>";
     var userId = null;
-    var socket = io.connect(host, {'secure': <% if(protocol=='https') {%>true<%} else { %>false<% } %>,
-                     'connect timeout': 500, 
-                     'reconnect': true, 
-                     'reconnection delay': 500,
-                     'max reconnection attempts': 10});
+    var socket = io(host, {'secure': <% if(protocol=='https') {%>true<%} else { %>false<% } %>});
+                     // 'connect timeout': 500, 
+                     // 'reconnect': true, 
+                     // 'reconnection delay': 500,
+                     // 'max reconnection attempts': 10});
 
     var userCount = 1;
     var expiresTime = null;
     var viewShareEnable = true;    
     var fileList = [];
 
-    //new page
-    $("#newPage").click(function() {
-      document.location.href = host;
-    });
+  //   //new page
+  //   $("#newPage").click(function() {
+  //     document.location.href = host;
+  //   });
 
-    //clear page
-    $("#clearPage").click(function() {
-      socket.emit('clearPage', JSON.stringify({
-        pageId : pageId,
-        userId : userId
-      }));
-    });
+  //   //clear page
+  //   $("#clearPage").click(function() {
+  //     socket.emit('clearPage', JSON.stringify({
+  //       pageId : pageId,
+  //       userId : userId
+  //     }));
+  //   });
 
-  //채팅 메세지.
-    var messageElement = document.getElementById('messages');
-    var lastMessageElement = null;
+  // //채팅 메세지.
+  //   var messageElement = document.getElementById('messages');
+  //   var lastMessageElement = null;
 
-    var addMessage = function(chat) {
-      var newMessageElement = document.createElement('div');
-      var newMessageText = document.createTextNode(chat.user.substring(0, 5) + ' : ' + chat.message);
+  //   var addMessage = function(chat) {
+  //     var newMessageElement = document.createElement('div');
+  //     var newMessageText = document.createTextNode(chat.user.substring(0, 5) + ' : ' + chat.message);
     
-      if ( chat.user == userId)
-        newMessageElement.className = "meChat"
-      else if (chat.user == "")
-        newMessageElement.className = "systemChat"
-      else
-        newMessageElement.className = "otherChat"
+  //     if ( chat.user == userId)
+  //       newMessageElement.className = "meChat"
+  //     else if (chat.user == "")
+  //       newMessageElement.className = "systemChat"
+  //     else
+  //       newMessageElement.className = "otherChat"
         
-      newMessageElement.appendChild(newMessageText);        
-      if (lastMessageElement == null)        
-    messageElement.insertBefore(newMessageElement, lastMessageElement);
-    else
-    lastMessageElement.parentNode.insertBefore(newMessageElement, lastMessageElement.nextSibling);
+  //     newMessageElement.appendChild(newMessageText);        
+  //     if (lastMessageElement == null)        
+  //   messageElement.insertBefore(newMessageElement, lastMessageElement);
+  //   else
+  //   lastMessageElement.parentNode.insertBefore(newMessageElement, lastMessageElement.nextSibling);
     
-    $("#chatScroll").scrollTop($("#chatScroll")[0].scrollHeight);
-      lastMessageElement = newMessageElement;
-    };
+  //   $("#chatScroll").scrollTop($("#chatScroll")[0].scrollHeight);
+  //     lastMessageElement = newMessageElement;
+  //   };
 
-    function checkMessage(message) {
-      //console.log(message);
-      if ((typeof message == "object") && (message !== null)) {
-        var chat = message;
-      } else {
-        var chat = JSON.parse(message);
-      }
+  //   function checkMessage(message) {
+  //     //console.log(message);
+  //     if ((typeof message == "object") && (message !== null)) {
+  //       var chat = message;
+  //     } else {
+  //       var chat = JSON.parse(message);
+  //     }
 
-      //cmd인지 매치
-      if (chat.user.match(/^\/(\w*)(.*)/)) {
-        if (chat.user == '/userConnected') { //신규 유저 로그인.
-          addMessage({
-            user : '',
-            message : chat.message + ' in'
-          });
-          socket.emit('userInfo', pageId);
-        } else if (chat.user == '/userDisconnected') { //유저 접속 해제
-          addMessage({
-            user : '',
-            message : chat.message + ' out'
-          });
-          socket.emit('userInfo', pageId);
-        }
+  //     //cmd인지 매치
+  //     if (chat.user.match(/^\/(\w*)(.*)/)) {
+  //       if (chat.user == '/userConnected') { //신규 유저 로그인.
+  //         addMessage({
+  //           user : '',
+  //           message : chat.message + ' in'
+  //         });
+  //         socket.emit('userInfo', {});
+  //       } else if (chat.user == '/userDisconnected') { //유저 접속 해제
+  //         addMessage({
+  //           user : '',
+  //           message : chat.message + ' out'
+  //         });
+  //         socket.emit('userInfo', {});
+  //       }
 
-      } else { //메세지 추가.
-        addMessage(chat);
-      }
+  //     } else { //메세지 추가.
+  //       addMessage(chat);
+  //     }
 
-    }
+  //   }
 
-    //for debug.
-    socket.on('log', function(content) {
-      console.log(content);
-    });
+  //   socket.on('connect', function(content) {
+  //     //console.log(content);
+  //   });
+
+  //   //for debug.
+  //   socket.on('log', function(content) {
+  //     console.log(content);
+  //   });
   
-  //userInfo.
-    socket.on('userInfo', function(content) {
-      var obj = JSON.parse(content);
-      userCount = obj.userCount;
-      $("#userCount").html(userCount);
-    });
+  // //userInfo.
+  //   socket.on('userInfo', function(obj) {
+  //     userCount = obj.userCount;
+  //     $("#userCount").html(userCount);
+  //   });
     
-    socket.on('chatMessage', function(content) {
-      checkMessage(content);
-    });
+  //   socket.on('chatMessage', function(content) {
+  //     //checkMessage(content);
+  //   });
 
-    socket.on('textMessage', function(content) {
-      $("#pageText").val(content);
+  //   socket.on('textMessage', function(content) {
+  //     $("#pageText").val(content);
 
-    });
+  //   });
 
-    socket.on('pageInfo', function(content) {
-      var obj = JSON.parse(content);
-      //console.log(content);
-      userId = obj.userId;
-      userCount = obj.userCount;
+  //   socket.on('pageInfo', function(content) {
+  //     var obj = content;
+  //     console.log(content);
 
-      $("#pageText").val(obj.text);
-      $("#userCount").html(userCount);
 
-    //채팅 초기화.
-      $('#messages').empty(); 
-      lastMessageElement = null;
+  //     userId = obj.userId;
+  //     userCount = obj.userCount;
 
-      //time
-      expiresTime = new Date(obj.expiresTime);
-      $("#expiresTime").html(  expiresTime.toLocaleString() );
+  //     $("#pageText").val(obj.text);
+  //     $("#userCount").html(userCount);
 
-      //파일 존재시, 파일 리스트추가.
-      $('#fileList').empty(); //초기화
-    fileList.length = 0;      
-      lastFileElement = null;
+  //   //채팅 초기화.
+  //     $('#messages').empty(); 
+  //     lastMessageElement = null;
 
-    for(var k in obj.fileList.files)
-    addFile( obj.fileList.files[k] );
+  //     //time
+  //     expiresTime = new Date(obj.expiresTime);
+  //     $("#expiresTime").html(  expiresTime.toLocaleString() );
 
-    });
+  //     //파일 존재시, 파일 리스트추가.
+  //     $('#fileList').empty(); //초기화
+  //     fileList.length = 0;
+  //     lastFileElement = null;
 
-    socket.on('pageJoined', function(content) { //join시 불려짐.
-      socket.emit('pageInfo', pageId);
-    });
+  //     for(var k in obj.fileList.files)
+  //       addFile(obj.fileList.files[k]);
+  //   });
 
-    socket.on('pageDeleted', function(content) { //page삭제시. 다시 접속.
-      //re join
-      userId = null;
-      userCount = 1;
-      socket.emit('join', pageId);
+  //   socket.on('pageJoined', function(content) { //join시 불려짐.
+  //     //socket.emit('pageInfo', {});
+  //   });
 
-      //document.location.reload(true);
-      //console.log('pageDeleted');
-    });
+  //   socket.on('pageDeleted', function(content) { //page삭제시. 다시 접속.
+  //     //re join
+  //     userId = null;
+  //     userCount = 1;
+  //     socket.emit('join', pageId);
+
+  //     //document.location.reload(true);
+  //     //console.log('pageDeleted');
+  //   });
         
-  socket.on('viewShareOpen', function(content) {
-    if (viewShareEnable) {
-    $.colorbox({href : content.fileName, iframe:true, width:"80%", height:"80%",    
-        onOpen:function(){   },
-        onLoad:function(){   },
-        onComplete:function(){  
-          $(".cboxIframe").on("load", function() { 
-          $('#cboxTitle').text( $(".cboxIframe")[0].contentDocument.location.href  );
-          });                  
-        },
-        onCleanup:function(){  },
-        onClosed:function(){  }
-        });        
-    }
-  });  
+  // socket.on('viewShareOpen', function(content) {
+  //   if (viewShareEnable) {
+  //   $.colorbox({href : content.fileName, iframe:true, width:"80%", height:"80%",    
+  //       onOpen:function(){   },
+  //       onLoad:function(){   },
+  //       onComplete:function(){  
+  //         $(".cboxIframe").on("load", function() { 
+  //         $('#cboxTitle').text( $(".cboxIframe")[0].contentDocument.location.href  );
+  //         });                  
+  //       },
+  //       onCleanup:function(){  },
+  //       onClosed:function(){  }
+  //       });        
+  //   }
+  // });  
   
-  socket.on('viewShareClosed', function(content) {
-    if (viewShareEnable)
-    $.colorbox.close();
-  });  
+  // socket.on('viewShareClosed', function(content) {
+  //   if (viewShareEnable)
+  //   $.colorbox.close();
+  // });  
   
 
-    //한글은 keypress 에 안잡힘.
-    var sendPage = function() {
-      socket.emit('textMessage', $("#pageText").val());
-    };
+  //   //한글은 keypress 에 안잡힘.
+  //   var sendPage = function() {
+  //     socket.emit('textMessage', $("#pageText").val());
+  //   };
 
-    var timer1;
-    $('#pageText').keyup(function(e) {
-      clearTimeout(timer1);
-      timer1 = setTimeout(sendPage, 200); //보통 다음글자는 0.2초 안에
-    });
+  //   var timer1;
+  //   $('#pageText').keyup(function(e) {
+  //     clearTimeout(timer1);
+  //     timer1 = setTimeout(sendPage, 200); //보통 다음글자는 0.2초 안에
+  //   });
 
 
-  $( "#chatInput" ).keydown(function( e ) {
-      if (e.which == 13) {
-        var chatMessage = $.trim( $("#chatInput").val() );
+  // $( "#chatInput" ).keydown(function( e ) {
+  //     if (e.which == 13) {
+  //       var chatMessage = $.trim( $("#chatInput").val() );
         
-        if (chatMessage.match(/^\/(\w*)(.*)/)) {
-          var chatMessage = chatMessage.split(' ');
-          chatMessage[0] = chatMessage[0].replace('/', '');
-          socket.emit(chatMessage[0], chatMessage[1]);
-        } else {
-          socket.emit('chatMessage', chatMessage);
-        }
+  //       if (chatMessage.match(/^\/(\w*)(.*)/)) {
+  //         var chatMessage = chatMessage.split(' ');
+  //         chatMessage[0] = chatMessage[0].replace('/', '');
+  //         socket.emit(chatMessage[0], chatMessage[1]);
+  //       } else {
+  //         socket.emit('chatMessage', {pageId: pageId, chatMessage: chatMessage});
+  //       }
 
-        $('#chatInput').val('');
-        return false;
-      } else {
-        return true;
-      }
+  //       $('#chatInput').val('');
+  //       return false;
+  //     } else {
+  //       return true;
+  //     }
 
-  });
+  // });
 
-    $('#viewShareToggle').on('switch-change', function (e, data) {
-      var $el = $(data.el), value = data.value;
-      viewShareEnable = value; //console.log(e, $el, value);
-    });
+  //   $('#viewShareToggle').on('switch-change', function (e, data) {
+  //     var $el = $(data.el), value = data.value;
+  //     viewShareEnable = value; //console.log(e, $el, value);
+  //   });
 
-  $('#fileupload').fileupload({
-    dataType: 'json',
-    done: function (e, data) {
-      //console.log(data);
+  // $('#fileupload').fileupload({
+  //   dataType: 'json',
+  //   done: function (e, data) {
+  //     //console.log(data);
       
-      //$.each(data.result.files, function (index, file) {
-      //  $('<p/>').text(file.name).appendTo(document.body);
-      //});
-    },
-    progressall: function (e, data) {
-      var progress = parseInt(data.loaded / data.total * 100, 10);
-      $('#progress .bar').css(
-        'width',
-        progress + '%'
-      );
-    }    
+  //     //$.each(data.result.files, function (index, file) {
+  //     //  $('<p/>').text(file.name).appendTo(document.body);
+  //     //});
+  //   },
+  //   progressall: function (e, data) {
+  //     var progress = parseInt(data.loaded / data.total * 100, 10);
+  //     $('#progress .bar').css(
+  //       'width',
+  //       progress + '%'
+  //     );
+  //   }    
     
-  });
+  // });
 
-  var refleshFileList = function() {
-    $.get('<%= protocol %>://<%= host %>/<%= pageId %>/file/' , function(data) {
-      //파일 존재시, 파일 리스트추가.
-      $('#fileList').empty(); //init
-      fileList.length = 0;
-      lastFileElement = null;
-      try {
-        data = JSON.parse(data);
-        for(var k in obj.fileList.files)
-          addFile( obj.fileList.files[k] );
-      } catch(e) {
-        //console.log(e);
-      }
-    });
-  };
+  // var refleshFileList = function() {
+  //   $.get('<%= protocol %>://<%= host %>/<%= pageId %>/file/' , function(data) {
+  //     //파일 존재시, 파일 리스트추가.
+  //     $('#fileList').empty(); //init
+  //     fileList.length = 0;
+  //     lastFileElement = null;
+  //     try {
+  //       data = JSON.parse(data);
+  //       for(var k in obj.fileList.files)
+  //         addFile( obj.fileList.files[k] );
+  //     } catch(e) {
+  //       //console.log(e);
+  //     }
+  //   });
+  // };
   
-    socket.on('fileSaved', function(content) {
-      addFile(content);
-    });
-    socket.on('fileDeletedAll', function(content) {
-      refleshFileList();
-    });    
-    socket.on('fileDeleted', function(content) {
-      refleshFileList();
-    });
+  //   socket.on('fileSaved', function(content) {
+  //     addFile(content);
+  //   });
+  //   socket.on('fileDeletedAll', function(content) {
+  //     refleshFileList();
+  //   });    
+  //   socket.on('fileDeleted', function(content) {
+  //     refleshFileList();
+  //   });
 
 
-    //파일 리스트업로드시 추가.
-    var fileElement = document.getElementById('fileList');
-    var lastFileElement = null;
-    function addFile(content) {
-      if ((typeof content == "object") && (content !== null)) {
-        var file = content;
-      } else {
-        var file = JSON.parse(content);
-      }
+  //   //파일 리스트업로드시 추가.
+  //   var fileElement = document.getElementById('fileList');
+  //   var lastFileElement = null;
+  //   function addFile(content) {
+  //     if ((typeof content == "object") && (content !== null)) {
+  //       var file = content;
+  //     } else {
+  //       var file = JSON.parse(content);
+  //     }
 
-    if ( $.inArray( file.name, fileList) >= 0)
-      return;
+  //   if ( $.inArray( file.name, fileList) >= 0)
+  //     return;
 
-    fileList.push( file.name );
+  //   fileList.push( file.name );
     
-      var newFileElement = document.createElement('div');
-      var newLinkElement = document.createElement('a');
-      var newFileText = document.createTextNode(file.name);
-      newLinkElement.href = host + '/' + pageId + '/file/'+ file.name;
-      newLinkElement.className = 'brand';
+  //     var newFileElement = document.createElement('div');
+  //     var newLinkElement = document.createElement('a');
+  //     var newFileText = document.createTextNode(file.name);
+  //     newLinkElement.href = host + '/' + pageId + '/file/'+ file.name;
+  //     newLinkElement.className = 'brand';
 
-      newLinkElement.appendChild(newFileText);
+  //     newLinkElement.appendChild(newFileText);
 
-      var newViewLinkElement = document.createElement('a');
-      var newViewFileText = document.createTextNode(' (view) ');
-      newViewLinkElement.href = host + '/' + pageId + '/view/' + file.name;
-      newViewLinkElement.className = "iframe";
+  //     var newViewLinkElement = document.createElement('a');
+  //     var newViewFileText = document.createTextNode(' (view) ');
+  //     newViewLinkElement.href = host + '/' + pageId + '/view/' + file.name;
+  //     newViewLinkElement.className = "iframe";
 
-      newViewLinkElement.appendChild(newViewFileText);
+  //     newViewLinkElement.appendChild(newViewFileText);
 
-      newFileElement.appendChild(newLinkElement);
-      newFileElement.appendChild(newViewLinkElement);
+  //     newFileElement.appendChild(newLinkElement);
+  //     newFileElement.appendChild(newViewLinkElement);
 
-      fileElement.insertBefore(newFileElement, lastFileElement);
-      lastFileElement = newFileElement;
+  //     fileElement.insertBefore(newFileElement, lastFileElement);
+  //     lastFileElement = newFileElement;
       
-    $(".iframe").colorbox({iframe:true, width:"80%", height:"80%",
-        onOpen:function(){},
-        onLoad:function(){},
-        onComplete:function(){
-        $(".cboxIframe").on("load", function() { 
-          $('#cboxTitle').text( $(".cboxIframe")[0].contentDocument.location.href  );
-          if (viewShareEnable) {
-            var obj = {pageId:pageId, userId : userId, fileName : $(".cboxIframe")[0].contentDocument.location.href };
-            socket.emit('viewShareOpen', obj );
-          }
-        });
+  //   $(".iframe").colorbox({iframe:true, width:"80%", height:"80%",
+  //       onOpen:function(){},
+  //       onLoad:function(){},
+  //       onComplete:function(){
+  //       $(".cboxIframe").on("load", function() { 
+  //         $('#cboxTitle').text( $(".cboxIframe")[0].contentDocument.location.href  );
+  //         if (viewShareEnable) {
+  //           var obj = {pageId:pageId, userId : userId, fileName : $(".cboxIframe")[0].contentDocument.location.href };
+  //           socket.emit('viewShareOpen', obj );
+  //         }
+  //       });
 
-        },
-        onCleanup:function() {},
-        onClosed:function() {
-          if (viewShareEnable) {
-            var obj = {pageId:pageId, userId : userId, fileName : $(this).attr("href") };
-            socket.emit('viewShareClosed', obj ); 
-           }
-         }
-      });
-    }
+  //       },
+  //       onCleanup:function() {},
+  //       onClosed:function() {
+  //         if (viewShareEnable) {
+  //           var obj = {pageId:pageId, userId : userId, fileName : $(this).attr("href") };
+  //           socket.emit('viewShareClosed', obj ); 
+  //          }
+  //        }
+  //     });
+  //   }
 
-    //set expires time
-    var timeLeft = function() {
-      if (expiresTime == null) return false;
+  //   //set expires time
+  //   var timeLeft = function() {
+  //     if (expiresTime == null) return false;
       
-      var remainTime = expiresTime - Date.now();
+  //     var remainTime = expiresTime - Date.now();
 
-      if (remainTime < 0) {
-        $("#expiresTime").html("TIME OUT!");
-        return false;
-      }
+  //     if (remainTime < 0) {
+  //       $("#expiresTime").html("TIME OUT!");
+  //       return false;
+  //     }
 
-      var hh = Math.floor(remainTime / 1000 / 60 / 60);
-      remainTime -= hh * 1000 * 60 * 60;
-      var mm = Math.floor(remainTime / 1000 / 60);
-      remainTime -= mm * 1000 * 60;
-      var ss = Math.floor(remainTime / 1000);
-      remainTime -= ss * 1000;
+  //     var hh = Math.floor(remainTime / 1000 / 60 / 60);
+  //     remainTime -= hh * 1000 * 60 * 60;
+  //     var mm = Math.floor(remainTime / 1000 / 60);
+  //     remainTime -= mm * 1000 * 60;
+  //     var ss = Math.floor(remainTime / 1000);
+  //     remainTime -= ss * 1000;
 
-      var remainString = " ( ";
-      if (hh > 0)
-        remainString += ("00" + hh).slice(-2) + ":";
-      if (mm >= 0)
-        remainString += ("00" + mm).slice(-2) + ":";
-      if (ss >= 0)
-        remainString += ("00" + ss).slice(-2) + " lefts..)";
+  //     var remainString = " ( ";
+  //     if (hh > 0)
+  //       remainString += ("00" + hh).slice(-2) + ":";
+  //     if (mm >= 0)
+  //       remainString += ("00" + mm).slice(-2) + ":";
+  //     if (ss >= 0)
+  //       remainString += ("00" + ss).slice(-2) + " lefts..)";
 
-      $("#expiresTime").html( expiresTime.toLocaleString() + remainString );
+  //     $("#expiresTime").html( expiresTime.toLocaleString() + remainString );
 
-    };
-    setInterval( timeLeft, 1000);
+  //   };
+  //   setInterval( timeLeft, 1000);
 
-    //join the page if everything is done.
-    if (userId == null) {
-      socket.emit('join', pageId);
-    }
-});
+  //   //join the page if everything is done.
+  //   if (userId == null) {
+  //     //socket.emit('join', pageId);
+  //   }
+//});
   </script>
   <script>
     (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
